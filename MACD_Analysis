@@ -1,0 +1,47 @@
+# Import and read data from the CSV file
+with open('SPY_2016_2021.csv', 'r') as file: data = file.read().split('\n')
+# Remove the header row
+data.pop(0)
+prices = [float(row.split(',')[1]) for row in data]
+# SMA
+def get_sma(data, column): sma = []
+for i in range(len(data)): if i < column - 1:
+           sma.append(0)
+       else:
+sma.append(sum(data[i - column + 1:i + 1]) / column) return sma
+# EMA
+def get_ema(data, column):
+ema = [0 for i in range(column - 1)] ema.append(sum(data[:column]) / column) weight = 2 / (column + 1)
+for i in range(column, len(data)):
+ema.append((data[i] - ema[i - 1]) * weight + ema[i - 1]) return ema
+# Ask the user to choose between the SMA and the EMA
+ma_type = input("Select the type of moving average for MACD (all caps): ") if ma_type == 'SMA':
+   ma_func = get_sma
+elif ma_type == 'EMA':
+   ma_func = get_ema
+else:
+print("Invalid selection. Defaulting to EMA.") ma_func = get_ema
+# MACD & Signal lines
+ema_12 = get_ema(prices, 12)
+ema_26 = get_ema(prices, 26)
+macd_line = [ema_12[i] - ema_26[i] for i in range(26, len(prices))] signal_line = ma_func(macd_line, 9)
+# Calculate the buy/sell orders and track performance
+capital = 100000
+commission = 0.00125
+orders = []
+returns = []
+for i in range(26, len(prices)):
+macd_diff = macd_line[i - 26] - signal_line[i - 26] if macd_diff > 0:
+sold = capital / prices[i] / 100 * 100
+capital += (prices[i] * sold - commission * sold * prices[i]) orders.append(('Sell', prices[i], sold))
+elif macd_diff < 0:
+bought = capital / prices[i] / 100 * 100
+capital -= (prices[i] * bought + commission * bought * prices[i]) orders.append(('Buy', prices[i], bought))
+returns.append(capital - 100000)
+# Gains and returns calculation
+num_of_trades = len(orders)
+average_return = sum(returns) / num_of_trades gain_loss = sum(returns)/ 100000
+# Results
+print("Number of trades made:", num_of_trades)
+print("Average return per trade:", average_return)
+print("Relative gain/loss against Buy-Hold-Sell strategy using MACD:", gain_loss)
